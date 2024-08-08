@@ -6,10 +6,13 @@ This repository contains the `duck_zipcode_db` from the data pipeline. The goal 
 - Removed deprecated old SQL database codes.
 
 ## TODOs
-1. Add a script to generate individual yearly DuckDB files.
-2. Add a script to save backups for the individual yearly DuckDB files in CSV format.
-3. Add a script to export the cleaned/processed files to a desired location with the following format:
-   - From Python, the output would be sent to `naics 2`, `5`, and `6` as follows:
+1. Implement a script to generate individual yearly DuckDB files.
+   - Currently, the Python code generates NAICS levels using hardcoded values.
+   - The updated version should accept parameters and update the database accordingly.
+2. Create a script to save backups of the individual yearly DuckDB files in CSV format.
+3. Develop a script to export cleaned/processed files to a specified location in the following format:
+   - The output from Python should target NAICS levels `2`, `5`, and `6`, as shown below:
      ```
      community-zipcodes/industries/naics/US/zip/NY/US-NY-census-naics6-zip-2023.csv
      ```
+4. Add a GitHub Action to automate the annual update of the database.
