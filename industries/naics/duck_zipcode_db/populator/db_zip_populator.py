@@ -31,10 +31,18 @@ class ZipPopulator:
         Parameters:
             year (int): The year for which to retrieve data.
         """
-        # Read industries from CSV and filter relevant NAICS codes
+        # Read industries from CSV file into a DataFrame
         industries = pd.read_csv('./id_lists/industry_id_list.csv')
+
+        # Convert 'relevant_naics' column to integer type and then to string type
+        # This ensures that NAICS codes are treated as strings for length calculation
         industries['relevant_naics'] = industries['relevant_naics'].astype(int).astype(str)
+
+        # Calculate the length of each NAICS code (as a string) and store it in a new column 'level'
         industries['level'] = industries['relevant_naics'].apply(len)
+
+        # Filter the DataFrame to keep only the rows where the 'level' is 2, 4, or 6
+        # This retains only NAICS codes with lengths of 2, 4, or 6 characters
         industries = industries[industries['level'].isin([2, 4, 6])]
         
         # Check if industries DataFrame contains the required column
@@ -89,6 +97,11 @@ class ZipPopulator:
 
         # print(f"Finished processing {industry} for {year}.")
 
+# Note: The 'get_zip_zbp', 'get_all_zip_zbp', '_escape_and_quote', '_valid_naics_level' methods are defined but 
+# not currently invoked in the codebase.
+# Consider reviewing the implementation to ensure they are integrated where needed, 
+# or remove them if they are unnecessary.
+
     def get_zip_zbp(self, industry):
         """
         Retrieve and insert zip code data for all years for a specific industry.
@@ -141,6 +154,8 @@ class ZipPopulator:
 
     def _naics_year_selector(self, year):
         """
+        Helper method for _get_response_data.
+
         Select the appropriate NAICS code version based on the year.
 
         Parameters:
@@ -177,6 +192,8 @@ class ZipPopulator:
 
     def _create_row(self, naics_code, line, year):
         """
+        Helper method for _get_zip_and_year_help.
+
         Create a data row for insertion into the database.
 
         Parameters:
@@ -199,6 +216,8 @@ class ZipPopulator:
 
     def _get_response_data(self, sector, year, attempt=1):
         """
+        Helper method for _get_zip_and_year_help.
+
         Fetch data from the API for a specific sector and year.
 
         Parameters:
