@@ -5,12 +5,12 @@ This repository contains the `duck_zipcode_db` from the data pipeline. The goal 
 ## Completed Tasks
 - Removed deprecated old SQL database codes.
 - Updated documentations and annotations for python codes and notebooks under `duck_zipcode_db/`.
+- Added new logic to generate yearly DuckDB files.
 
 ## TODOs
-1. Implement a script to generate individual yearly DuckDB files.
-   - Currently, the Python code generates NAICS levels using hardcoded values.
-   - The updated version should accept parameters and update the database accordingly.
-   - Try to modify the `get_zip_for_year(self, year)` method in the ZipPopulator class to accommodate the new parameterized implementation.
+1. (Optional) Check previous yearly databases to see if there any conlict and update correspondingly:
+   1. Yearly Data Row Count Discrepancies. 
+   2. NAICS Level Discrepancies.
 2. Create a script to save backups of the individual yearly DuckDB files in CSV format.
 3. Develop a script to export cleaned/processed files to a specified location in the following format:
    - The output from Python should target NAICS levels `2`, `5`, and `6`, as shown below:

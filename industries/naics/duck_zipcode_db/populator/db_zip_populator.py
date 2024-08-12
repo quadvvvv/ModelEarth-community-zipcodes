@@ -6,21 +6,27 @@ import pandas as pd  # Importing pandas for data manipulation
 from tqdm import tqdm  # Importing tqdm for progress bar functionality
 
 class ZipPopulator:
-    def __init__(self, startyear=2012, endyear=None, api_headers=None, separate_databases = False):
+    def __init__(self, industry_levels, db_path, startyear=2012, endyear=None, api_headers=None, separate_databases=False):
         """
         Initialize the ZipPopulator class.
 
         Parameters:
+            industry_levels (any): NAICS levels.
             startyear (int): The starting year for data retrieval.
             endyear (int): The ending year for data retrieval.
             api_headers (dict): Headers for the API requests, including the API key.
+            separate_databases (bool): Flag indicating whether to create separate yearly databases.
         """
         self.api_headers = api_headers  # Store API headers
         self.base_url = "https://api.census.gov/data"  # Base URL for the Census API
         self.startyear = startyear  # Set the starting year
         self.endyear = endyear if endyear else datetime.datetime.now().year - 1  # Set the ending year
         self.separate_databases = separate_databases
+        self.industry_levels = industry_levels
+        self.db_path = db_path 
         self.failed_attempts = set()  # Set to track failed attempts to fetch data
+
+
 
     def get_zip_for_year(self, year):
         """
@@ -39,9 +45,8 @@ class ZipPopulator:
         # Calculate the length of each NAICS code (as a string) and store it in a new column 'level'
         industries['level'] = industries['relevant_naics'].apply(len)
 
-        # Filter the DataFrame to keep only the rows where the 'level' is 2, 4, or 6
-        # This retains only NAICS codes with lengths of 2, 4, or 6 characters
-        industries = industries[industries['level'].isin([2, 4, 6])]
+        # This retains only NAICS codes with lengths of characters given by the 'industry_levels'
+        industries = industries[industries['level'].isin(self.industry_levels)]
         
         # Check if industries DataFrame contains the required column
         if not hasattr(industries, 'get') or 'relevant_naics' not in industries:
@@ -49,15 +54,16 @@ class ZipPopulator:
 
         # Open the database connection, potentially using a new instance for separate databases
         if self.separate_databases:
-            with dbp.DatabasePopulator(year=year, separate_databases=self.separate_databases) as db_populator:
+            with dbp.DatabasePopulator(db_path=self.db_path, year=year, separate_databases=self.separate_databases) as db_populator:
                 self.db_populator = db_populator
                 for industry in tqdm(industries['relevant_naics'], desc=f"Inserting for year: {year}"):
                     self._get_zip_and_year_help(industry, year)
         else:
-            with dbp.DatabasePopulator(startyear=self.startyear, endyear=self.endyear) as db_populator:
+            with dbp.DatabasePopulator(db_path=self.db_path, startyear=self.startyear, endyear=self.endyear) as db_populator:
                 self.db_populator = db_populator
                 for industry in tqdm(industries['relevant_naics'], desc=f"Inserting for year: {year}"):
                     self._get_zip_and_year_help(industry, year)
+
         # since we are using context manager, this line should be redundant
         if self.db_populator is not None:
             self.db_populator.close()
@@ -109,7 +115,7 @@ class ZipPopulator:
 # Consider reviewing the implementation to ensure they are integrated where needed, 
 # or remove them if they are unnecessary.
 
-# However, get_zip_zbp is used in the jupyter notebook
+# However, get_zip_zbp is only used in the jupyter notebook
 
     def get_zip_zbp(self, industry):
         """
@@ -129,7 +135,7 @@ class ZipPopulator:
         industries = pd.read_csv('./id_lists/industry_id_list.csv')
         industries['relevant_naics'] = industries['relevant_naics'].astype(int).astype(str)
         industries['level'] = industries['relevant_naics'].apply(len)
-        industries = industries[industries['level'].isin([2, 4, 6])]
+        industries = industries[industries['level'].isin(self.industry_levels)]
         
         # Check if industries DataFrame contains the required column
         if not hasattr(industries, 'get') or 'relevant_naics' not in industries:
