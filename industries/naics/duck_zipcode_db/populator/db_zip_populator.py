@@ -6,7 +6,7 @@ import pandas as pd  # Importing pandas for data manipulation
 from tqdm import tqdm  # Importing tqdm for progress bar functionality
 
 class ZipPopulator:
-    def __init__(self, startyear=2012, endyear=None, api_headers=None):
+    def __init__(self, startyear=2012, endyear=None, api_headers=None, separate_databases = False):
         """
         Initialize the ZipPopulator class.
 
@@ -19,9 +19,7 @@ class ZipPopulator:
         self.base_url = "https://api.census.gov/data"  # Base URL for the Census API
         self.startyear = startyear  # Set the starting year
         self.endyear = endyear if endyear else datetime.datetime.now().year - 1  # Set the ending year
-        with dbp.DatabasePopulator(startyear=self.startyear, endyear=self.endyear) as db_populator:
-            self.db_populator = db_populator  # Initialize the DatabasePopulator
-        
+        self.separate_databases = separate_databases
         self.failed_attempts = set()  # Set to track failed attempts to fetch data
 
     def get_zip_for_year(self, year):
@@ -49,11 +47,20 @@ class ZipPopulator:
         if not hasattr(industries, 'get') or 'relevant_naics' not in industries:
             raise ValueError("industries must be a dictionary-like object with a 'relevant_naics' key")
 
-        self.db_populator.open()  # Open the database connection
-        # Iterate over each relevant NAICS code
-        for industry in tqdm(industries['relevant_naics'], desc=f"Inserting for year: {year}"):
-            self._get_zip_and_year_help(industry, year)  # Fetch and insert data for each industry
-        self.db_populator.close()  # Close the database connection
+        # Open the database connection, potentially using a new instance for separate databases
+        if self.separate_databases:
+            with dbp.DatabasePopulator(year=year, separate_databases=self.separate_databases) as db_populator:
+                self.db_populator = db_populator
+                for industry in tqdm(industries['relevant_naics'], desc=f"Inserting for year: {year}"):
+                    self._get_zip_and_year_help(industry, year)
+        else:
+            with dbp.DatabasePopulator(startyear=self.startyear, endyear=self.endyear) as db_populator:
+                self.db_populator = db_populator
+                for industry in tqdm(industries['relevant_naics'], desc=f"Inserting for year: {year}"):
+                    self._get_zip_and_year_help(industry, year)
+        # since we are using context manager, this line should be redundant
+        if self.db_populator is not None:
+            self.db_populator.close()
 
     def _get_zip_and_year_help(self, industry, year):
         """
@@ -101,6 +108,8 @@ class ZipPopulator:
 # not currently invoked in the codebase.
 # Consider reviewing the implementation to ensure they are integrated where needed, 
 # or remove them if they are unnecessary.
+
+# However, get_zip_zbp is used in the jupyter notebook
 
     def get_zip_zbp(self, industry):
         """
