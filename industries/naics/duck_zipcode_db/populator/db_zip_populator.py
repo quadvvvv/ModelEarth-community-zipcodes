@@ -38,9 +38,9 @@ class ZipPopulator:
         # Read industries from CSV file into a DataFrame
         industries = pd.read_csv('./id_lists/industry_id_list.csv')
 
-        # Convert 'relevant_naics' column to integer type and then to string type
-        # This ensures that NAICS codes are treated as strings for length calculation
-        industries['relevant_naics'] = industries['relevant_naics'].astype(int).astype(str)
+        # Convert NAICS code '0' (representing all sectors) to '00' to maintain consistency
+        # with other parts of the code and ensure it is included in the data pull.
+        industries['relevant_naics'] = industries['relevant_naics'].astype(int).astype(str).replace({'0': '00'})
 
         # Calculate the length of each NAICS code (as a string) and store it in a new column 'level'
         industries['level'] = industries['relevant_naics'].apply(len)

@@ -7,7 +7,7 @@ import datetime  # Import datetime for date handling
 import os  # Import os for operating system functions
 
 class DatabasePopulator:
-    def __init__(self, year=None, separate_databases=False, db_path='../zip_data/duck_db_manager/database/us_census_nacis_data_', startyear=2012, endyear=None):
+    def __init__(self, year=None, separate_databases=False, db_path='../zip_data/duck_db_manager/database/us_census_nacis_data', startyear=2012, endyear=None):
         """
         Initializes the DatabasePopulator instance.
 
