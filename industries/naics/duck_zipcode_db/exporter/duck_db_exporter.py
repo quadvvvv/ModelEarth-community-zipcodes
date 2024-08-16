@@ -80,6 +80,7 @@ class DataExporter:
     def make_csv(self, state=None):
         """
         Generates CSV files for all states if no state is specified.
+        If `state` is None, it generates a file for unspecified states with a placeholder ZIP code.
 
         Args:
             state (str, optional): The state for which data is to be exported.
@@ -91,14 +92,28 @@ class DataExporter:
         states = [state] if state else self._fetch_states()
 
         for state in states:
-            # Debugging statements to check values
-            if not self.absolute_export_dir:
-                raise ValueError("Export directory path is not set.")
-            if not state:
-                raise ValueError("State is None or empty.")
+            # Handle the "NotSpecified" case
+            if state is None:
+                state = "NotSpecified"
+                zipcodes = ['99999']
+                state_dir = os.path.join(self.absolute_export_dir, "NotSpecified")
+            else:
+                # Ensure proper state handling
+                if not self.absolute_export_dir:
+                    raise ValueError("Export directory path is not set.")
+                if not state:
+                    raise ValueError("State is None or empty.")
+                
+                # Create directory for the state
+                state_dir = os.path.join(self.absolute_export_dir, state)
+                os.makedirs(state_dir, exist_ok=True)
+                
+                zipcodes = self._fetch_zipcodes_for_state(state)
+                if not zipcodes:
+                    logging.warning(f"No ZIP codes found for state {state}. Skipping export.")
+                    continue
 
-            # Create directory for state
-            state_dir = os.path.join(self.absolute_export_dir, state)
+            # Ensure directory exists before trying to save files
             os.makedirs(state_dir, exist_ok=True)
 
             for industry_level in self.industry_levels:
@@ -106,14 +121,7 @@ class DataExporter:
                 filename = f'US-{state}-census-naics{industry_level}-zip-{self.year}.csv'
                 filepath = os.path.join(state_dir, filename)
 
-                # Fetch all zip codes for the state
-                zipcodes = self._fetch_zipcodes_for_state(state)
-                
-                if not zipcodes:
-                    logging.warning(f"No ZIP codes found for state {state}. Skipping export.")
-                    continue
-
-                # Fetch data for all zip codes in the state
+                # Fetch data for the ZIP codes
                 zipcodes_str = ', '.join(f"'{zipcode}'" for zipcode in zipcodes)
                 data_query = f"""
                 SELECT GeoID AS Zipcode, NaicsCode, Establishments, Employees, Payroll

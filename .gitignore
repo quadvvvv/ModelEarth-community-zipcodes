@@ -4,7 +4,14 @@
 /industries/naics/env/
 /industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database/us_economic_data.duckdb
 **/__pycache__/
-/industries/naics/duck_zipcode_db/zip_data/duck_db_manager/.ipynb_checkpoints
+
 .DS_Store
 industries/naics/duck_zipcode_db/temp/
 industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database/*.duckdb
+
+# Ignore Jupyter notebook checkpoint files
+.ipynb_checkpoints/
+
+# Ignore other files if needed
+*.log
+*.tmp
