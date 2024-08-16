@@ -6,26 +6,51 @@ from tqdm import tqdm
 import query as q
 
 class DataExporter:
-    def __init__(self, db_path='database/us_economic_data.duckdb', threads=4, export_dir='community-zipcodes', industry_levels=[2, 4, 6]):
+    def __init__(self, base_db_path='../zip_data/duck_db_manager/database/', threads=4, export_dir='community-zipcodes', industry_levels=[2, 4, 6], year=None):
         """
-        Initializes the DataExporter with the given database path, number of threads, export directory, and industry levels.
+        Initializes the DataExporter with the given database path, number of threads, export directory, industry levels, and year.
 
         Args:
-            db_path (str): Path to the DuckDB database (default is 'database/us_economic_data.duckdb').
+            base_db_path (str): Path to the base DuckDB database directory (default is '../zip_data/duck_db_manager/database/').
             threads (int): Number of threads for data export (default is 4).
             export_dir (str): Directory to save the exported CSV files (default is 'community-zipcodes').
             industry_levels (list): List of NAICS industry levels to use for data export (default is [2, 4, 6]).
+            year (int): The year of the database to use for data export.
         """
         self.export_dir = export_dir
         os.makedirs(self.export_dir, exist_ok=True)
-        self.db_path = db_path
+        self.base_db_path = base_db_path
         self.threads = threads
         self.industry_levels = industry_levels
-        self.qm = q.DataQueryManager(db_path=self.db_path)
+        self.year = year
+        self.qm = q.DataQueryManager(db_path=self._get_db_path_for_year(year))
         logging.basicConfig(level=logging.INFO)
 
+    def _get_db_path_for_year(self, year):
+        """
+        Constructs the database path for the given year.
+
+        Args:
+            year (int): The year of the database file.
+
+        Returns:
+            str: Path to the DuckDB database file for the specified year.
+
+        Raises:
+            ValueError: If year is not specified.
+        """
+        if year is None:
+            raise ValueError("Year must be specified.")
+        return os.path.join(self.base_db_path, f'us_naics_census_data_{year}.duckdb')
+
     def _fetch_geo_ids(self):
-        with duckdb.connect(self.db_path, read_only=True) as conn:
+        """
+        Fetches all unique geographic IDs (ZIP codes) from the DimZipCode table.
+
+        Returns:
+            list: A list of unique ZIP codes.
+        """
+        with duckdb.connect(self.qm.db_path, read_only=True) as conn:
             try:
                 geo_ids = conn.execute("SELECT DISTINCT GeoID FROM DimZipCode").fetchall()
                 return [geo_id[0] for geo_id in geo_ids]
@@ -33,47 +58,84 @@ class DataExporter:
                 logging.error(f"Failed to fetch GeoIDs: {e}")
                 return []
 
-    def _fetch_years(self):
-        with duckdb.connect(self.db_path, read_only=True) as conn:
-            try:
-                years = conn.execute("SELECT DISTINCT Year FROM DimYear").fetchall()
-                return [year[0] for year in years]
-            except Exception as e:
-                logging.error(f"Failed to fetch Years: {e}")
-                return []
+    def _fetch_state_for_zipcode(self, zipcode):
+        """
+        Fetches the state corresponding to a given ZIP code from the DimZipCode table.
 
-    def make_csv(self, zipcode, year=None, industry_level=None):
+        Args:
+            zipcode (str): The ZIP code for which the state is to be fetched.
+
+        Returns:
+            str: The state corresponding to the ZIP code, or None if not found.
+        """
+        with duckdb.connect(self.qm.db_path, read_only=True) as conn:
+            try:
+                state = conn.execute("SELECT State FROM DimZipCode WHERE GeoID = ?", (zipcode,)).fetchone()
+                return state[0] if state else None
+            except Exception as e:
+                logging.error(f"Failed to fetch state for ZIP code {zipcode}: {e}")
+                return None
+
+    def make_csv(self, zipcode, industry_level=None):
+        """
+        Generates a CSV file for the given ZIP code and industry level.
+
+        Args:
+            zipcode (str): The ZIP code for which data is to be exported.
+            industry_level (int, optional): The NAICS industry level for which data is to be exported.
+
+        Returns:
+            str: The file path of the generated CSV file, or None if the state could not be determined.
+        """
         if not (zipcode.isdigit() and len(zipcode) == 5):
             raise ValueError("Zipcode must be a string of exactly 5 digits.")
+
+        state = self._fetch_state_for_zipcode(zipcode)
+        if not state:
+            logging.error(f"State not found for ZIP code {zipcode}. Skipping...")
+            return None
         
         # Construct path
-        nested_path = os.path.join(self.export_dir, 'industries', 'naics', 'US', 'zip', 'NY')
+        nested_path = os.path.join(self.export_dir, 'industries', 'naics', 'US', 'zip', state)
         os.makedirs(nested_path, exist_ok=True)
         
         # Construct filename
-        filename_parts = ['US-NY']
+        filename_parts = [f'US-{state}']
         if industry_level:
             filename_parts.append(f'census-naics{industry_level}')
-        if year:
-            filename_parts.append(f'zip-{year}')
+        filename_parts.append(f'zip-{self.year}')
         filename = "-".join(filename_parts) + ".csv"
         filepath = os.path.join(nested_path, filename)
         
-        with duckdb.connect(self.db_path, read_only=True) as conn:
-            results = self.qm.filter(zipcode=zipcode, year=year, industry_level=industry_level, conn=conn)
+        with duckdb.connect(self.qm.db_path, read_only=True) as conn:
+            results = self.qm.filter(zipcode=zipcode, year=self.year, industry_level=industry_level, conn=conn)
             results.to_csv(filepath, index=False)
         
         return filepath
 
     def worker(self, args):
-        geo_id, year, level = args
-        return self.make_csv(geo_id, year=year, industry_level=level)
+        """
+        Worker function for multiprocessing to handle CSV generation for each combination of arguments.
 
-    def export_all_geo_year_data(self):
+        Args:
+            args (tuple): A tuple containing (zipcode, industry_level).
+
+        Returns:
+            str: The file path of the generated CSV file.
+        """
+        zipcode, level = args
+        return self.make_csv(zipcode, industry_level=level)
+
+    def export_all_geo_data(self):
+        """
+        Exports data for all ZIP codes and industry levels using multiprocessing.
+
+        Returns:
+            list: A list of file paths for the exported CSV files.
+        """
         geo_ids = self._fetch_geo_ids()
-        years = self._fetch_years()
         levels = self.industry_levels
-        all_combinations = [(geo_id, year, level) for geo_id in geo_ids for year in years for level in levels]
+        all_combinations = [(geo_id, level) for geo_id in geo_ids for level in levels]
 
         try:
             with Pool(processes=self.threads) as pool:
@@ -87,30 +149,20 @@ class DataExporter:
         except Exception as e:
             logging.error(f"An error occurred: {e}")
 
-    def export_geo_year_data(self, year):
-        geo_ids = self._fetch_geo_ids()
-        levels = self.industry_levels
-        all_combinations = [(geo_id, year, level) for geo_id in geo_ids for level in levels]
+    def debug_export_all_geo_data(self):
+        """
+        Debug method to export data for all ZIP codes and industry levels without multiprocessing.
 
-        try:
-            with Pool(processes=self.threads) as pool:
-                results = list(tqdm(pool.imap(self.worker, all_combinations), total=len(all_combinations), desc="Exporting data"))
-                return results
-        except KeyboardInterrupt:
-            print("Interrupted by user. Exiting...")
-            pool.terminate()
-            pool.join()
-            logging.info("Exporting process was interrupted by user.")
-        except Exception as e:
-            logging.error(f"An error occurred: {e}")
+        This method is useful for debugging and validating the export process.
 
-    def debug_export_all_geo_year_data(self):
+        Returns:
+            None
+        """
         geo_ids = self._fetch_geo_ids()
-        years = self._fetch_years()
 
         for geo_id in tqdm(geo_ids, desc="GeoID Export"):
-            for year in tqdm(years, desc="Year Export", leave=False):
+            for level in tqdm(self.industry_levels, desc="Industry Level Export", leave=False):
                 try:
-                    self.make_csv(geo_id, year=year)
+                    self.make_csv(geo_id, industry_level=level)
                 except Exception as e:
-                    logging.error(f"Failed to export data for GeoID {geo_id} and Year {year}: {e}")
+                    logging.error(f"Failed to export data for GeoID {geo_id} and Industry Level {level}: {e}")
