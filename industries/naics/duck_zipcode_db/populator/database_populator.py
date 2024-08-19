@@ -7,37 +7,47 @@ import datetime  # Import datetime for date handling
 import os  # Import os for operating system functions
 
 class DatabasePopulator:
-    def __init__(self, db_path='../zip_data/duck_db_manager/database/us_economic_data.duckdb', startyear=2012, endyear=None):
+    def __init__(self, year=None, separate_databases=False, db_path='../zip_data/duck_db_manager/database/us_census_nacis_data', startyear=2012, endyear=None):
         """
         Initializes the DatabasePopulator instance.
 
         Parameters:
-            db_path (str): The path to the DuckDB database.
+            year (int, optional): The year for which to create the database. If None and separate_databases is True, a single database for all years is created.
+            separate_databases (bool): Flag to determine if separate databases should be created for each year.
+            db_path (str): The base path for the DuckDB database.
             startyear (int): The starting year for data population.
             endyear (int): The ending year for data population. Defaults to the current year minus one.
         """
-        self.db_path = db_path  # Store the database path
+        self.db_path = db_path  # Store the base database path
         self.conn = None  # Initialize the database connection
         self.startyear = startyear  # Store the starting year
         self.endyear = endyear if endyear else datetime.datetime.now().year - 1  # Set the ending year
+        self.year = year  # Store the specific year
+        self.separate_databases = separate_databases  # Store the flag for separate databases
 
     def __enter__(self):
         """Establish a database connection and create necessary tables."""
-        self.conn = duckdb.connect(self.db_path)  # Connect to the DuckDB database
+        if self.separate_databases and self.year is not None:
+            db_path = f"{self.db_path}_{self.year}.duckdb"  # Separate databases for each year
+        else:
+            db_path = f"{self.db_path}.duckdb"  # Single database for all years
+
+        self.conn = duckdb.connect(db_path)  # Establish the database connection
         self._create_tables()  # Create required tables in the database
         self.populate_dim_zipcode()  # Populate the DimZipCode table
         self.populate_naics()  # Populate the DimNaics table
         self.populate_year()  # Populate the DimYear table
         return self  # Return the instance for use in a context manager
-
+    
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close the database connection when exiting the context manager."""
         self.close()  # Close the database connection
 
     def open(self):
         """Open the database connection if it is not already open."""
-        if not self.conn:
-            self.conn = duckdb.connect(self.db_path)  # Connect to the DuckDB database
+        if self.conn is None:
+            db_path = f"{self.db_path}_{self.year}.duckdb" if self.separate_databases and self.year is not None else f"{self.db_path}.duckdb"
+            self.conn = duckdb.connect(db_path)  # Connect to the DuckDB database
 
     def close(self):
         """Close the database connection."""
@@ -80,6 +90,7 @@ class DatabasePopulator:
             df = pd.DataFrame(data_rows_with_id, columns=columns)  # Create a DataFrame from the data
 
             # Save the DataFrame to a temporary CSV file
+            # TODO: Github Action have to set relative path for this to work
             df.to_csv('../temp/data_entries_temp.csv', index=False)
 
             # Load the data from the CSV file into the DataEntry table
