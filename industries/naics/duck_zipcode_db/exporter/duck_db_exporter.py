@@ -87,41 +87,36 @@ class DataExporter:
 
         Returns:
             list: A list of file paths for the generated CSV files.
+            dict: A dictionary where keys are file paths and values are the number of rows exported.
         """
         file_paths = []
         states = [state] if state else self._fetch_states()
+        industry_level_row_counts = {level: 0 for level in self.industry_levels}
+        total_rows_exported = 0
 
         for state in states:
-            # Handle the "NotSpecified" case
             if state is None:
                 state = "NotSpecified"
                 zipcodes = ['99999']
                 state_dir = os.path.join(self.absolute_export_dir, "NotSpecified")
             else:
-                # Ensure proper state handling
                 if not self.absolute_export_dir:
                     raise ValueError("Export directory path is not set.")
                 if not state:
                     raise ValueError("State is None or empty.")
-                
-                # Create directory for the state
                 state_dir = os.path.join(self.absolute_export_dir, state)
                 os.makedirs(state_dir, exist_ok=True)
-                
                 zipcodes = self._fetch_zipcodes_for_state(state)
                 if not zipcodes:
                     logging.warning(f"No ZIP codes found for state {state}. Skipping export.")
                     continue
 
-            # Ensure directory exists before trying to save files
             os.makedirs(state_dir, exist_ok=True)
 
             for industry_level in self.industry_levels:
-                # Construct filename
                 filename = f'US-{state}-census-naics{industry_level}-zip-{self.year}.csv'
                 filepath = os.path.join(state_dir, filename)
 
-                # Fetch data for the ZIP codes
                 zipcodes_str = ', '.join(f"'{zipcode}'" for zipcode in zipcodes)
                 data_query = f"""
                 SELECT GeoID AS Zipcode, NaicsCode, Establishments, Employees, Payroll
@@ -137,15 +132,17 @@ class DataExporter:
                         results = conn.execute(data_query).fetchdf()
                         if isinstance(results, pd.DataFrame):
                             results.to_csv(filepath, index=False)
-                            file_paths.append(filepath)
+                            num_rows = len(results)
+                            industry_level_row_counts[industry_level] += num_rows
+                            total_rows_exported += num_rows
+                            logging.info(f"Export for state {state} at industry level {industry_level} is finished. {num_rows} rows have been exported.")
                         else:
                             logging.error(f"Query result for state {state} at industry level {industry_level} is not a DataFrame.")
                     except Exception as e:
                         logging.error(f"Failed to export data for state {state}, industry level {industry_level}: {e}")
 
-        return file_paths
-
-
+        logging.info(f"Total rows exported for Year {self.year}: {total_rows_exported}")
+        return industry_level_row_counts, total_rows_exported
 
     def worker(self, args):
         """
