@@ -8,7 +8,12 @@ from tqdm import tqdm  # Importing tqdm for progress bar functionality
 class ZipPopulator:
     def __init__(self, industry_levels, db_path, startyear=2012, endyear=None, api_headers=None, separate_databases=False):
         """
-        Initialize the ZipPopulator class.
+        This class is a modified version of the original ZipPopulatorClass. 
+        It accepts industry_levels as arguments, allowing for more flexible 
+        data handling based on specific industry levels.
+    
+        Additionally, there is a flag to indicate whether to use a single database 
+        for all years or separate databases for each year.
 
         Parameters:
             industry_levels (any): NAICS levels.
@@ -25,8 +30,6 @@ class ZipPopulator:
         self.industry_levels = industry_levels
         self.db_path = db_path 
         self.failed_attempts = set()  # Set to track failed attempts to fetch data
-
-
 
     def get_zip_for_year(self, year):
         """

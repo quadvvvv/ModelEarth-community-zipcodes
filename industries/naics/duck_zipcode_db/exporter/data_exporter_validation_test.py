@@ -89,12 +89,12 @@ class DataExporterTest:
             for level in levels:
                 if not self._compare_counts(state, level):
                     all_tests_passed = False
-                    logging.error(f"Test failed for state {state}, industry level {level}")
+                    logging.error(f"Testing for Year {self.year}: Test failed for state {state}, industry level {level}")
 
         if all_tests_passed:
-            print("All CSV files match the database data by row count.")
+            print(f"Tested Year {self.year}: All CSV files match the database data by row count.")
         else:
-            print("Some CSV files do not match the database data by row count.")
+            print(f"Tested Year {self.year}: Some CSV files do not match the database data by row count.")
 
 # Example usage:
 if __name__ == "__main__":
