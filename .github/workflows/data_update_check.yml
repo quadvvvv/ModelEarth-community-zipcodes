@@ -1,43 +1,54 @@
-name: Check for Data Updates
+name: Data Management Workflow
 
 on:
-  schedule:
-    - cron: '0 0 1 * *'  # Runs at midnight on the first day of each month
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  update_check:
+  data_management:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set Up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
 
-      - name: Run Data Update Check
-        id: check_updates
-        run: python .github/scripts/check_for_updates.py
+    - name: Check for updates
+      id: check_updates  # Set an ID to reference this step's output
+      run: |
+        python .github/scripts/check_for_updates.py > gap_years.txt
+        echo "::set-output name=gap_years::$(cat gap_years.txt)"  # Capture the output
 
-      - name: Populate Missing Data
-        if: steps.check_updates.outputs.gap_years != ''
-        run: |
-          # Extract the gap years from the output of the previous step
-          IFS=',' read -r -a gap_years <<< "${{ steps.check_updates.outputs.gap_years }}"
-          for year in "${gap_years[@]}"; do
-            echo "Populating data for year: $year"
-            python .github/scripts/populate_data.py $year
-          done
+    - name: Populate missing years
+      run: |
+        gap_years=${{ steps.check_updates.outputs.gap_years }}
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+          python .github/scripts/populate_data.py --year "$year"
+        done
 
-      - name: Export Data to CSV
-        run: python .github/scripts/export_data.py
+    - name: Export data
+      run: |
+        gap_years=${{ steps.check_updates.outputs.gap_years }}
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+          python .github/scripts/export_data.py --year "$year"  # Pass the year as an argument
+        done
 
-      - name: Check Data Consistency
-        run: python .github/scripts/check_data_consistency.py
+    - name: Run Data Exporter Validation Test
+      run: |
+        gap_years=${{ steps.check_updates.outputs.gap_years }}
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+          python .github/scripts/run_validation_test.py "$year"  # Pass the year as an argument
+        done
