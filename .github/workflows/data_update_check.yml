@@ -1,0 +1,54 @@
+name: Data Management Workflow
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  data_management:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Check for updates
+      id: check_updates  # Set an ID to reference this step's output
+      run: |
+        python .github/scripts/check_for_updates.py > gap_years.txt
+        echo "::set-output name=gap_years::$(cat gap_years.txt)"  # Capture the output
+
+    - name: Populate missing years
+      run: |
+        gap_years=${{ steps.check_updates.outputs.gap_years }}
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+          python .github/scripts/populate_data.py --year "$year"
+        done
+
+    - name: Export data
+      run: |
+        gap_years=${{ steps.check_updates.outputs.gap_years }}
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+          python .github/scripts/export_data.py --year "$year"  # Pass the year as an argument
+        done
+
+    - name: Run Data Exporter Validation Test
+      run: |
+        gap_years=${{ steps.check_updates.outputs.gap_years }}
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+          python .github/scripts/run_validation_test.py "$year"  # Pass the year as an argument
+        done
