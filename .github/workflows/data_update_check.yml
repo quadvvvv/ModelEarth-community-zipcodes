@@ -1,0 +1,43 @@
+name: Check for Data Updates
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Runs at midnight on the first day of each month
+
+jobs:
+  update_check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set Up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Data Update Check
+        id: check_updates
+        run: python .github/scripts/check_for_updates.py
+
+      - name: Populate Missing Data
+        if: steps.check_updates.outputs.gap_years != ''
+        run: |
+          # Extract the gap years from the output of the previous step
+          IFS=',' read -r -a gap_years <<< "${{ steps.check_updates.outputs.gap_years }}"
+          for year in "${gap_years[@]}"; do
+            echo "Populating data for year: $year"
+            python .github/scripts/populate_data.py $year
+          done
+
+      - name: Export Data to CSV
+        run: python .github/scripts/export_data.py
+
+      - name: Check Data Consistency
+        run: python .github/scripts/check_data_consistency.py
