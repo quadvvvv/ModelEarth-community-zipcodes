@@ -88,7 +88,7 @@ def find_gap_years(latest_year_local, latest_year_remote):
     return [year for year in range(latest_year_local + 1, latest_year_remote + 1)]
 
 if __name__ == "__main__":
-    db_directory = "../industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database"
+    db_directory = "./industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database"
     try:
         latest_year = fetch_latest_year_from_api()
         local_years = check_local_years(db_directory)
