@@ -2,10 +2,10 @@ import os
 import pandas as pd
 import duckdb
 import logging
-from duck_db_exporter import DataExporter
+from industries.naics.duck_zipcode_db.exporter.duck_db_exporter import DataExporter
 
 class DataExporterTest:
-    def __init__(self, year, base_db_path='../zip_data/duck_db_manager/database/', export_dir='../../US/zip'):
+    def __init__(self, year, base_db_path='./industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database', export_dir='./industires/US/zip'):
         self.year = year
         self.export_dir = export_dir
         self.base_db_path = base_db_path
@@ -93,8 +93,10 @@ class DataExporterTest:
 
         if all_tests_passed:
             print(f"Tested Year {self.year}: All CSV files match the database data by row count.")
+            return True
         else:
             print(f"Tested Year {self.year}: Some CSV files do not match the database data by row count.")
+            return False
 
 # Example usage:
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import datetime  # Import datetime for date handling
 import os  # Import os for operating system functions
 
 class DatabasePopulator:
-    def __init__(self, year=None, separate_databases=False, db_path='../zip_data/duck_db_manager/database/us_census_nacis_data', startyear=2012, endyear=None):
+    def __init__(self, year=None, separate_databases=False, db_path='./industries/naics/duck_zipcode_db/zip_data//duck_db_manager/database/us_census_nacis_data', startyear=2012, endyear=None):
         """
         Initializes the DatabasePopulator instance.
 
@@ -262,7 +262,7 @@ class DatabasePopulator:
         if self.data_exists('DimNaics'):
             return  # Exit if DimNaics table already has data
         
-        df = pd.read_csv('id_lists/industry_id_list.csv')  # Read industry data from CSV
+        df = pd.read_csv('./industries/naics/duck_zipcode_db/populator/id_lists/industry_id_list.csv')  # Read industry data from CSV
 
         # Function to format NAICS codes
         def format_naics(value):

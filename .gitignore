@@ -2,11 +2,10 @@
 /industries/naics/sqlite_zipcode_db_delete/
 /industries/naics/README-delete.md
 /industries/naics/env/
-/industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database/us_economic_data.duckdb
+
 **/__pycache__/
 .DS_Store
 industries/naics/duck_zipcode_db/temp/
-industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database/*.duckdb
 
 # Ignore Jupyter notebook checkpoint files
 .ipynb_checkpoints/

@@ -3,10 +3,10 @@ import logging
 import duckdb
 import pandas as pd
 from multiprocessing import Pool
-import query as q
+import industries.naics.duck_zipcode_db.exporter.query as q
 
 class DataExporter:
-    def __init__(self, base_db_path='../zip_data/duck_db_manager/database/', threads=4, export_dir='../../US/zip', industry_levels=[2, 5, 6], year=None):
+    def __init__(self, base_db_path='./industries/naics/duck_zipcode_db/zip_data/duck_db_manager/database/', threads=4, export_dir='./industries/US/zip', industry_levels=[2, 5, 6], year=None):
         """
         Initializes the DataExporter with the given parameters.
 
@@ -19,15 +19,13 @@ class DataExporter:
         """
         self.export_dir = export_dir
         # Create the export directory relative to the script location
-        self.absolute_export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.export_dir)
-        os.makedirs(self.absolute_export_dir, exist_ok=True)
         self.base_db_path = base_db_path
         self.threads = threads
         self.industry_levels = industry_levels
         self.year = year
         if year is None:
             raise ValueError("Year must be specified.")
-        self.qm = q.DataQueryManager(db_path=self._get_db_path_for_year(year), export_dir=self.absolute_export_dir)
+        self.qm = q.DataQueryManager(db_path=self._get_db_path_for_year(year), export_dir=self.export_dir)
         logging.basicConfig(level=logging.INFO)
 
     def _get_db_path_for_year(self, year):
@@ -98,13 +96,13 @@ class DataExporter:
             if state is None:
                 state = "NotSpecified"
                 zipcodes = ['99999']
-                state_dir = os.path.join(self.absolute_export_dir, "NotSpecified")
+                state_dir = os.path.join(self.export_dir, "NotSpecified")
             else:
-                if not self.absolute_export_dir:
+                if not self.export_dir:
                     raise ValueError("Export directory path is not set.")
                 if not state:
                     raise ValueError("State is None or empty.")
-                state_dir = os.path.join(self.absolute_export_dir, state)
+                state_dir = os.path.join(self.export_dir, state)
                 os.makedirs(state_dir, exist_ok=True)
                 zipcodes = self._fetch_zipcodes_for_state(state)
                 if not zipcodes:

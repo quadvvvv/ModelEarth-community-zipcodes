@@ -1,12 +1,12 @@
 import datetime  # Importing the datetime module for date manipulation
 import requests as r  # Importing requests library for making HTTP requests
 import time  # Importing time module for handling sleep intervals
-import database_populator as dbp  # Importing the DatabasePopulator class from the database_populator module
+import industries.naics.duck_zipcode_db.populator.database_populator as dbp
 import pandas as pd  # Importing pandas for data manipulation
 from tqdm import tqdm  # Importing tqdm for progress bar functionality
 
 class ZipPopulator:
-    def __init__(self, industry_levels, db_path, startyear=2012, endyear=None, api_headers=None, separate_databases=False):
+    def __init__(self, industry_levels, db_path, startyear=2012, endyear=None, api_headers={'x-api-key': '975f39a54e48438ceebf303d6018e34db212e804'}, separate_databases=False):
         """
         This class is a modified version of the original ZipPopulatorClass. 
         It accepts industry_levels as arguments, allowing for more flexible 
@@ -39,7 +39,7 @@ class ZipPopulator:
             year (int): The year for which to retrieve data.
         """
         # Read industries from CSV file into a DataFrame
-        industries = pd.read_csv('./id_lists/industry_id_list.csv')
+        industries = pd.read_csv('./industries/naics/duck_zipcode_db/populator/id_lists/industry_id_list.csv')
 
         # Convert NAICS code '0' (representing all sectors) to '00' to maintain consistency
         # with other parts of the code and ensure it is included in the data pull.
@@ -135,7 +135,7 @@ class ZipPopulator:
         """
         Retrieve and insert zip code data for all industries over the specified year range.
         """
-        industries = pd.read_csv('./id_lists/industry_id_list.csv')
+        industries = pd.read_csv('./industries/naics/duck_zipcode_db/populator/id_lists/industry_id_list.csv')
         industries['relevant_naics'] = industries['relevant_naics'].astype(int).astype(str)
         industries['level'] = industries['relevant_naics'].apply(len)
         industries = industries[industries['level'].isin(self.industry_levels)]
