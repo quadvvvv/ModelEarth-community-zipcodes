@@ -1,4 +1,4 @@
-# Data Management Workflow
+# Zipcode Data Management Workflow
 
 This workflow is designed to manage and maintain data updates in the repository by checking for missing years, populating data, exporting it, and validating the exported files.
 
@@ -45,7 +45,7 @@ The Data Management Workflow is triggered by two events:
 
 ```plaintext
 .github/
-├── README.md                    # Documentation for the Data Management Workflow
+├── workflows.md                    # Our Zipcode Data Management Workflow Documentation
 ├── scripts/
 │   ├── check_for_updates.py     # Checks for missing years in the dataset
 │   ├── populate_data.py         # Populates missing years in the database
