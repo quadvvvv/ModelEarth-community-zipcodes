@@ -1,6 +1,6 @@
 # About Zip Data
 
-Our repository provides [zipcode-related economic data](https://github.com/ModelEarth/community-zipcodes/tree/main/industries/naics/US/zip), automatically updated via [GitHub Actions workflows](https://github.com/ModelEarth/community-zipcodes/blob/main/.github/workflows.md). The data is sourced from the U.S. Census API, processed, and stored in a DuckDB database, and exported to [CSV files](https://github.com/ModelEarth/community-zipcodes/tree/main/industries/naics/US/zip) for easy access. Developers can also explore the code to customize the data processing pipeline.
+Our repository provides [zipcode-related economic data](https://github.com/ModelEarth/community-zipcodes/tree/main/industries/naics/US/zip), automatically updated via [GitHub Actions workflows](https://github.com/ModelEarth/community-zipcodes/blob/main/.github/workflows.md). The data is sourced from the U.S. Census API, processed, and stored in a DuckDB database, and exported to [CSV files](https://github.com/ModelEarth/community-zipcodes/tree/main/industries/naics/US/zip) for easy access. Developers can also explore the code to customize the data processing pipeline and also use our NAICS .csv files prepared for [the entire US, individual states and counties](/data-pipeline/industries/naics/).
 
 At the zipcode level, employees and payroll are often omitted by the census to protect privacy.  
 Our [NAICS Imputation using ML](/machine-learning) can be updated to estimate blank values.
