@@ -92,5 +92,5 @@ For detailed logic and implementation, refer to the inline documentation within 
 
 ---
 
-If you're looking to understand how data is automatically updated, check the [.github/README.md](.github/README.md) for details on the workflow.
+If you're looking to understand how data is automatically updated, check the [.github/workflows.md](https://github.com/ModelEarth/community-zipcodes/blob/main/.github/workflows.md) for details on the workflow.
 
