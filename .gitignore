@@ -1,0 +1,17 @@
+/industries/naics/old/
+/industries/naics/sqlite_zipcode_db_delete/
+/industries/naics/README-delete.md
+/industries/naics/env/
+
+**/__pycache__/
+.DS_Store
+industries/naics/duck_zipcode_db/temp/
+
+# Ignore Jupyter notebook checkpoint files
+.ipynb_checkpoints/
+
+# Ignore other files if needed
+*.log
+*.tmp
+*.db
+**/__init__.py

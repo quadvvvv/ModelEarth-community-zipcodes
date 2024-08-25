@@ -1,0 +1,95 @@
+name: Data Management Workflow
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Runs at midnight on the 1st of every month (UTC)
+  workflow_dispatch:
+
+jobs:
+  data_management:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Check for updates
+      id: check_updates
+      run: |
+        set -e  # Exit on error
+        python .github/scripts/check_for_updates.py > gap_years.txt
+        echo "GAP_YEARS=$(cat gap_years.txt)" >> $GITHUB_ENV  # Use environment file to set the variable
+
+    - name: End Workflow if No Missing Years
+      if: env.GAP_YEARS == ''
+      run: |
+        echo "No missing years detected. Ending workflow."
+        exit 0
+
+    - name: Populate missing years
+      run: |
+        gap_years=${{ env.GAP_YEARS }}  # Access the environment variable
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+            python .github/scripts/populate_data.py "$year"
+        done
+
+    - name: Export data
+      run: |
+        gap_years=${{ env.GAP_YEARS }}  # Access the environment variable
+        IFS=',' read -ra years <<< "$gap_years"  # Split the comma-separated string into an array
+        for year in "${years[@]}"; do
+            python .github/scripts/export_data.py "$year"
+        done
+
+    - name: Validate Export
+      id: validate_export
+      run: |
+        echo "Validating exported data for years..."
+        success=true  # Initialize a success flag
+        failed_years=""  # Initialize a string to hold failed years
+
+        # Validate for each year
+        gap_years=${{ env.GAP_YEARS }}  # Access the environment variable
+        IFS=',' read -ra years <<< "$gap_years"
+        for year in "${years[@]}"; do
+            # Run the validation test script and capture the output
+            output=$(python .github/scripts/run_validation_test.py "$year")
+            result=$?
+
+            echo "$output"  # Print the output to the console
+
+            if [[ $result -ne 0 ]]; then
+                success=false
+                failed_years+="$year "  # Add failed year to the list
+            fi
+        done
+
+        if [ "$success" = true ]; then
+            echo "All validations passed."
+        else
+            echo "Validation failed for years: $failed_years"
+        fi
+
+        echo "VALIDATION_SUCCESS=$success" >> $GITHUB_ENV  # Set success flag as an environment variable
+
+    - name: Commit and push changes if validation passes
+      if: env.VALIDATION_SUCCESS == 'true'  # Proceed only if validation succeeded
+      run: |
+        git config user.name "Your Name"
+        git config user.email "your.email@example.com"
+        git add .
+        git commit -m "feat: Add updated data for missing years"
+        git push origin ${{ github.ref_name }}
+      shell: bash
